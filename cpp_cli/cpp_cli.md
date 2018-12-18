@@ -12,9 +12,9 @@ This article is just a short overview of C++/CLI functionalities.
         - [Structs](#structs)
         - [Enumerations](#enumerations)
     - [Exception Handling](#exception-handling)
-        - [Throwing Exceptions:](#throwing-exceptions)
-        - [Handling Exceptions:](#handling-exceptions)
-        - [Finally block:](#finally-block)
+        - [Throwing Exceptions](#throwing-exceptions)
+        - [Handling Exceptions](#handling-exceptions)
+        - [Finally block](#finally-block)
     - [Safe Casting](#safe-casting)
     - [How to use a C++/CLI dll in VS with another language?](#how-to-use-a-ccli-dll-in-vs-with-another-language)
     - [Arrays and Collections](#arrays-and-collections)
@@ -192,7 +192,7 @@ s.x =10;
 - `Finally` block
 - If an exception not derived from `System::Exception` escapes from C++/CLI to non-C++ code (language) the exception is wrapped into a `RuntimeWrappedException`.
 
-### Throwing Exceptions:
+### Throwing Exceptions
 
 - In C++: Typically throw and catch by reference
 - In .NET: Typically throw objects derived from `System::Exception`
@@ -202,7 +202,7 @@ s.x =10;
 throw gcnew System::ArgumentException("Heeelp");
 ```
 
-### Handling Exceptions:
+### Handling Exceptions
 
 - Use a `try catch` block like in C++:
 
@@ -210,7 +210,7 @@ throw gcnew System::ArgumentException("Heeelp");
 try {...} catch(MyException^ e) { ... }
 ```
 
-### Finally block:
+### Finally block
 
 - Cleanup code after an exception is thrown
 
