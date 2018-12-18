@@ -45,7 +45,7 @@ C++/CLI is a special version (extension) of C++ designed to run on the .NET Fram
   - Handles can be `nullptr`
 - There is no implict copy constructor in C++/CLI. You have to provide one yourself.
 - References: _Tracking references__ (since GC can relocate) using
-    ```C++
+    ```cpp
     MyFoo(const MyFoo% other); // in C++: MyFoo(const MyFoo& other);
     ```
 - No default arguments on managed types
@@ -57,7 +57,7 @@ C++/CLI is a special version (extension) of C++ designed to run on the .NET Fram
 
 - __Finalization__: What happens when the GC cleans an object up
 - Destructor:
-    ```C++
+    ```cpp
     Person^ p = gcnew Person("foo");
     ...
     delete p; // will call the destructor of p
@@ -66,7 +66,7 @@ C++/CLI is a special version (extension) of C++ designed to run on the .NET Fram
   - Will be called if the GC is cleaning up a object
   - You need a finalizer if you handle unmanaged code in your object
   - Example:
-    ```C++
+    ```cpp
     ref class Foo {
         public:
             ~Foo(); // destructor
@@ -84,7 +84,7 @@ C++/CLI is a special version (extension) of C++ designed to run on the .NET Fram
 - Automatic objects (stack allocated):
   - Under the hood there is no stack and objects have still _handles_. If an automatic object goes out of scope the destructor is called!
 - Copy constructor:
-    ```C++
+    ```cpp
     ...
     MyFoo(const MyFoo% other);
     ...
@@ -99,18 +99,18 @@ C++/CLI is a special version (extension) of C++ designed to run on the .NET Fram
 - Syntax: `ref class Foo : Base {...};`
 - Every object implicitly inherits from `System::Object` in .NET
 - Abstract classes work by using the `abstract` keyword:
-    ```C++
+    ```cpp
     ref class AbstractBase abstract {...};
     ```
 - You can _seal_ a class (like final in C++) so that it is not allowed as a base class:
-    ```C++
+    ```cpp
     ref class NoBase sealed {...};
     ```
 
 ## Interfaces
 
 - Like a base class with only pure virtual functions
-    ```C++
+    ```cpp
     interface class Inter {
         void foo();
     };
@@ -129,7 +129,7 @@ C++/CLI is a special version (extension) of C++ designed to run on the .NET Fram
 ## Values and References
 
 - C++/CLI types are just aliases to the __boxed .NET__ types:
-    ```C++
+    ```cpp
     int n   = 0;    // managed C++ type
     Int32 x = 0;    // use .NET native type -> means the same thing as n
     ```
@@ -145,7 +145,7 @@ C++/CLI is a special version (extension) of C++ designed to run on the .NET Fram
 
 ### Structs
 
-```C++
+```cpp
 value struct S {    // value is important to distinguish 
                     // between c++ structs and .NET structs
     int x;
@@ -169,7 +169,7 @@ s.x =10;
 - Are value types
 - Synatax:
 
-```C++
+```cpp
     // like class enums in C++
     public enum class Foo : int {
     // public/private is needed to distinguish to C++11 class enums
@@ -199,7 +199,7 @@ s.x =10;
 - In .NET: Typically throw objects derived from `System::Exception`
 - Example:
 
-```C++
+```cpp
 throw gcnew System::ArgumentException("Heeelp");
 ```
 
@@ -207,7 +207,7 @@ throw gcnew System::ArgumentException("Heeelp");
 
 - Use a `try catch` block like in C++:
 
-```C++
+```cpp
 try {...} catch(MyException^ e) { ... }
 ```
 
@@ -215,7 +215,7 @@ try {...} catch(MyException^ e) { ... }
 
 - Cleanup code after an exception is thrown
 
-```C++
+```cpp
 try {...}
 catch(MyException^ e) { ... }
 finally{...} // executed after the catch block
@@ -237,7 +237,7 @@ finally{...} // executed after the catch block
 - Managed arrays: Equivalent of C++ arrays but lives on the managed heap
 - Examples:
 
-```C++
+```cpp
 array<int>^ a1;     // 1D array of integers
 array<int, 2>^ a2;  // 2D array of integers
 array<Foo^> a3;     // 1D array of Foo handles
@@ -249,7 +249,7 @@ array<int>^ a_new = {1,2,3};        // short form
 
 - `for each` loop: Works with every Collection that implements `IEnumerable`.
 
-```C++
+```cpp
 for each (int a in a1)
 {
     ...
@@ -279,7 +279,7 @@ for each (int a in a1)
 - Properties are like virtual data members with syntactic suggar:
 - Can be (pure) `virtual` even with separation on get and set
 
-```C++
+```cpp
 Foo^ foo = gcnew Foo();
 foo->Name = "foo";      // calls the setter
 name = foo->Name;       // calls the getter
@@ -289,7 +289,7 @@ name = foo->Name;       // calls the getter
 
 - Access to a single value
 
-```C++
+```cpp
 ref class Foo {
     String^ name;
     public:
@@ -304,7 +304,7 @@ ref class Foo {
 
 - Indexed: Let properties get accessed like arrays
 
-```C++
+```cpp
 ref class Foo {
     array<int>^ a;
     public:
@@ -334,7 +334,7 @@ ref class Foo {
     - `remove_OnAEvent` that calls `Delegate::Remove` to remove a reveiver from the event's invocation list. Shortcut: `-=` on the event object itself.
     - `raise_OnAEvent` that  is a protected method that calls `Delegate::Invoke` to call all methods on this event's invocation list.
 
-```C++
+```cpp
 // Event source delegates
 // This is the signature event receivers must implement
 delegate void EventHandlerA(String^ str);
@@ -399,7 +399,7 @@ src->RaiseB("Bar");
 - Standard events and System::EventHandler
   - All standard .NET handlers have the following signature:
 
-```C++
+```cpp
   // src:  Reference Object that raised the event
   // args: Reference to object of base type EventArgs (extra infos about the event)
   void MyPersonalHandler(Object^ src, EventArgs^ args); 
@@ -407,7 +407,7 @@ src->RaiseB("Bar");
 
 - The programmer could use the `System::EventHandler` delegate instead of defining new delegates for event handling.
 
-```C++
+```cpp
 ref class Foo {
     int counter;
     int limit;
@@ -453,7 +453,7 @@ count.LimitReached += gcnew EventHandler(&Bar::CallMe);
   - Can be passed to unmanaged code
   - Get handle by using `Alloc` and release handle by calling `Free`
     - Easier with helper template:
-    ```C++
+    ```cpp
     #include <gcroot.h>
     using namespace System::Runtime::InteropServices;
     class CppClass {
@@ -488,7 +488,7 @@ count.LimitReached += gcnew EventHandler(&Bar::CallMe);
 
 - __Pinning pointer__: Pointer to a managed object but with a fixed value (GC cannot move object) around. Pinning a member of an object will pin the whole object.
 
-```C++
+```cpp
 void cpp_fun(int* p); // c++ function taking a pointer
 
 array<int>^ arr = gcnew array<int>(5);
@@ -506,7 +506,7 @@ pin = nullptr; // zero out to unpin
         - The address of the managed object is returned
   - Be aware that the managed object contains a __copy_ of the original object and changes will not be written back to the original value.
   - __Unboxing__ is done with a `safe_cast<T>`:
-    ```C++
+    ```cpp
     int i = 12;         // value type
     Object^ obj = i;    // automatically boxed (copied on the heap)
     int j = safe_cast<int>(obj); // unboxed (copied from the heap)
@@ -521,7 +521,7 @@ pin = nullptr; // zero out to unpin
   - Let you call functions in dlls
   - Underlying marshalling principle in C++/CLI (e.g. from `std::string` to `String^`)
 
-```C++
+```cpp
 // call a MessageBox function from the WIN API
 // Function is found in User32.dll
 
