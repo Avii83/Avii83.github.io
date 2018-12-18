@@ -1,30 +1,31 @@
 # C++/CLI
 This article is just a short overview of C++/CLI functionalities.
 - [C++/CLI](#ccli)
-    - [What is CLI](#what-is-cli)
-    - [Differences between C++ and C++/CLI](#differences-between-c-and-ccli)
-    - [Object Lifetime](#object-lifetime)
-        - [Destruction and Finalization:](#destruction-and-finalization)
-        - [Automatic objects (stack allocated)](#automatic-objects-stack-allocated)
-    - [Inheritance](#inheritance)
-    - [Interfaces](#interfaces)
-    - [Values and References](#values-and-references)
-        - [Structs](#structs)
-        - [Enumerations](#enumerations)
-    - [Exception Handling](#exception-handling)
-        - [Throwing Exceptions](#throwing-exceptions)
-        - [Handling Exceptions](#handling-exceptions)
-        - [Finally block](#finally-block)
-    - [Safe Casting](#safe-casting)
-    - [How to use a C++/CLI dll in VS with another language?](#how-to-use-a-ccli-dll-in-vs-with-another-language)
-    - [Arrays and Collections](#arrays-and-collections)
-    - [Properties](#properties)
-        - [Scalar Properties](#scalar-properties)
-    - [Delegates and Events](#delegates-and-events)
-    - [Managed vs. Unmanaged Code](#managed-vs-unmanaged-code)
-        - [Mixed classes](#mixed-classes)
-        - [Pinning and Boxing](#pinning-and-boxing)
-        - [PInvoke to call functions in the Win32 API](#pinvoke-to-call-functions-in-the-win32-api)
+  - [What is CLI](#what-is-cli)
+  - [Differences between C++ and C++/CLI](#differences-between-c-and-ccli)
+  - [Object Lifetime](#object-lifetime)
+    - [Destruction and Finalization:](#destruction-and-finalization)
+    - [Automatic objects (stack allocated)](#automatic-objects-stack-allocated)
+  - [Inheritance](#inheritance)
+  - [Interfaces](#interfaces)
+  - [Values and References](#values-and-references)
+    - [Structs](#structs)
+    - [Enumerations](#enumerations)
+  - [Exception Handling](#exception-handling)
+    - [Throwing Exceptions](#throwing-exceptions)
+    - [Handling Exceptions](#handling-exceptions)
+    - [Finally block](#finally-block)
+  - [Safe Casting](#safe-casting)
+  - [How to use a C++/CLI dll in VS with another language?](#how-to-use-a-ccli-dll-in-vs-with-another-language)
+  - [Arrays and Collections](#arrays-and-collections)
+  - [Properties](#properties)
+    - [Scalar Properties](#scalar-properties)
+  - [Delegates and Events](#delegates-and-events)
+    - [Events](#events)
+  - [Managed vs. Unmanaged Code](#managed-vs-unmanaged-code)
+    - [Mixed classes](#mixed-classes)
+    - [Pinning and Boxing](#pinning-and-boxing)
+    - [PInvoke to call functions in the Win32 API](#pinvoke-to-call-functions-in-the-win32-api)
 
 ## What is CLI
 
@@ -318,7 +319,127 @@ ref class Foo {
 
 ## Delegates and Events
 
-TODO
+### Events
+
+- In .NET events are implemented as a publish-and-subscribe mechanism.
+- Events are based on delegates: An event source declares delegate for each event that it wants to generate and event receivers define suitable methods that are passed to the source.
+- When an event fires it invokes all the subscribed functions.
+- Event properties:
+  - Can only be fired by the type that declares it
+  - Clients can only add and remove event handler functions using `+=` and `-=` to prevent resetting the invocation list.
+- The `event` keyword:
+  - Compiler will generate code to implement the underlying delegate meachanism.
+  - For event `AEvent` the following public/protected methods will be generated:
+    - `add_OnAEvent` that calls `Delegate::Combine` to add a receiver to the event's invocation list. Shortcut: `+=` on the event object itself.
+    - `remove_OnAEvent` that calls `Delegate::Remove` to remove a reveiver from the event's invocation list. Shortcut: `-=` on the event object itself.
+    - `raise_OnAEvent` that  is a protected method that calls `Delegate::Invoke` to call all methods on this event's invocation list.
+
+```C++
+// Event source delegates
+// This is the signature event receivers must implement
+delegate void EventHandlerA(String^ str);
+delegate void EventHandlerB(String^ str);
+
+// Event Source class
+ref class Source {
+public:
+    // the events (one declaration for each event you want to raise)
+    event EventHandlerA^ OnAEvent;
+    event EventHandlerB^ OnBEvent;
+
+    // event raising functions
+    void RaiseA(String^ msg) {
+        OnAEvent(msg);
+    }
+
+     void RaiseB(String^ msg) {
+        OnBEvent(msg);
+    }
+};
+
+// Event receiver that listens for events
+ref class Listener {
+    Source^ source;
+
+public:
+    Listener(Source^ src) {
+            source = src;
+            // add our handlers
+            source->OnAEvent += gcnew EventHandlerA(this, &Listener::EventA);
+            source->OnBEvent += gcnew EventHandlerA(this, &Listener::EventB);
+    }
+
+    // handler methods
+    void EventA(String ^msg) {
+        Console::WriteLine("Event A, message is {0}", msg);
+    }
+
+    void EventB(String ^msg) {
+        Console::WriteLine("Event B, message is {0}", msg);
+    }
+
+    void RemoveHandler() {
+        // unsub only for EventA
+        source->OnAEvent -= gcnew EventHandlerA(this, &Listener::EventA);
+    }
+};
+
+...
+// setup source and listener
+Source ^src   = gcnew Source();
+Listener ^rcv = gcnew Listener(src);
+
+// Fire events
+Console::WriteLine("Fire both events:");
+src->RaiseA("Foo");
+src->RaiseB("Bar");
+
+```  
+
+- Standard events and System::EventHandler
+  - All standard .NET handlers have the following signature:
+
+```C++
+  // src:  Reference Object that raised the event
+  // args: Reference to object of base type EventArgs (extra infos about the event)
+  void MyPersonalHandler(Object^ src, EventArgs^ args); 
+```
+
+- The programmer could use the `System::EventHandler` delegate instead of defining new delegates for event handling.
+
+```C++
+ref class Foo {
+    int counter;
+    int limit;
+
+public:
+    event EventHandler^ LimitReached; // use of System::EventHandler
+
+    Counter(int lim) : 
+        limit(lim), 
+        counter(0) {
+    }
+
+    void inc() {
+        ++count;
+        if (count == limit) {
+            LimitReached(this, gcnew EventArgs()); // raise event
+        }
+    }
+};
+
+ref class Bar {
+public:
+    static void CallMe(Object^ src, EventArgs^ args) {
+        Console::WriteLine("Limit reached");
+    }
+};
+
+...
+Counter count(3);
+count.LimitReached += gcnew EventHandler(&Bar::CallMe);
+
+```
 
 ## Managed vs. Unmanaged Code
 
