@@ -28,11 +28,16 @@ __Table of Contents__:
         - [Scalar Properties](#scalar-properties)
     - [Delegates and Events](#delegates-and-events)
         - [Delegates](#delegates)
+            - [Multicast Delegates](#multicast-delegates)
+            - [Delegates that return non-void types](#delegates-that-return-non-void-types)
         - [Events](#events)
     - [Managed vs. Unmanaged Code](#managed-vs-unmanaged-code)
         - [Mixed classes](#mixed-classes)
         - [Pinning and Boxing](#pinning-and-boxing)
         - [PInvoke to call functions in the Win32 API](#pinvoke-to-call-functions-in-the-win32-api)
+    - [Important Constructs for Writing C++/CLI Wrapper](#important-constructs-for-writing-ccli-wrapper)
+        - [Marshalling](#marshalling)
+        - [Marshalling Arrays with Primitive Types](#marshalling-arrays-with-primitive-types)
 
 ## What is CLI
 
@@ -371,6 +376,23 @@ double cuby = op(3.0); // like calling foo->CubeMe(3.0);
 
 - You cannot use a delegate to call unmanaged code or code that is defined in the global namespace.
 
+#### Multicast Delegates
+
+- A delegate that does not only call single functions but multiple and is derived from `System::MutlicastDelegate`.
+- As previous mentioned, C++/CLI only implements mulitcast delegates
+- All multicast delegates have a so-called _invocation list_.
+
+#### Delegates that return non-void types
+
+- On multicast delegates typically the return value last function that is called is returned (although that is implementation dependent).
+- You might control this step by yourself by iterating over the _invocation list_.
+
+```cpp
+for each(Operation^ op in myMultiDelegates->getInvocationList()) {
+    double val = op(...); // use the appropriate arguments here
+}
+```
+
 ### Events
 
 - In .NET events are implemented as a publish-and-subscribe mechanism.
@@ -444,7 +466,6 @@ Listener ^rcv = gcnew Listener(src);
 Console::WriteLine("Fire both events:");
 src->RaiseA("Foo");
 src->RaiseB("Bar");
-
 ```  
 
 - Standard events and System::EventHandler
@@ -589,4 +610,41 @@ MessageBox(IntPtr::Zero, text, cap, 0);
 // User another name for your internal prototype
 [DllImport("User32.dll", EntryPoint="MessageBox", CharSet=CharSet::Auto)]
 int WindowsMessageBox(IntPtr hwnd, String ^text, String ^caption, unsigned int type);
+```
+
+## Important Constructs for Writing C++/CLI Wrapper
+
+### Marshalling
+
+- Use the _marshalling library_ from `msclr` [Documentation](https://docs.microsoft.com/en-us/cpp/dotnet/overview-of-marshaling-in-cpp?view=vs-2017)
+- Basically every every string type (e.g.`Sytem::String`) can be marshalled to C++ types and back (e.g. from `std::string`). 
+
+```cpp
+#include <msclr\marshal.h>
+
+using namespace System;
+using namespace msclr::interop;
+
+const char* message = "Test String to Marshal";
+String^ result;
+result = marshal_as<String^>( message );
+```
+
+### Marshalling Arrays with Primitive Types
+
+```cpp
+#include <algorithm>
+#include <vector>
+
+array<double>^ arr;
+...
+
+std::vector<double> std_vec(arr->Length);
+{
+    // use RAII to release pin_ptr after copying
+    pin_ptr<double> pin(&arr[0]); // pin memory of the array
+    double* first = static_cast<double*>(pin);
+    double* last = static_cast<double*>(pin + arr->Length);
+    std::copy(first, last, std_vec.begin());
+}
 ```
