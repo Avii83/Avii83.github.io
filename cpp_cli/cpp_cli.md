@@ -1,10 +1,16 @@
 # C++/CLI
-This article is just a short overview of C++/CLI functionalities.
+This article is just a short overview of C++/CLI functionalities to create interfaces between .NET and C++.
+
+If you came to this page by accident (e.g. Google search) please be aware of the following details:
+
+>This is just a private article to remind myself of various aspects of a topic. This article might contain typos, ill-formed code, errors and is certainly not a useful reference for everybody. A lot of code examples are not even tested in the case i got the information from a blog or book! The only reason this article exists is to give me easy access to information i gathered when learned about a certain topic.
+
+__Table of Contents__:
 - [C++/CLI](#ccli)
     - [What is CLI](#what-is-cli)
     - [Differences between C++ and C++/CLI](#differences-between-c-and-ccli)
     - [Object Lifetime](#object-lifetime)
-        - [Destruction and Finalization:](#destruction-and-finalization)
+        - [Destruction and Finalization](#destruction-and-finalization)
         - [Automatic objects (stack allocated)](#automatic-objects-stack-allocated)
     - [Inheritance](#inheritance)
     - [Interfaces](#interfaces)
@@ -21,6 +27,7 @@ This article is just a short overview of C++/CLI functionalities.
     - [Properties](#properties)
         - [Scalar Properties](#scalar-properties)
     - [Delegates and Events](#delegates-and-events)
+        - [Delegates](#delegates)
     - [Managed vs. Unmanaged Code](#managed-vs-unmanaged-code)
         - [Mixed classes](#mixed-classes)
         - [Pinning and Boxing](#pinning-and-boxing)
@@ -49,10 +56,11 @@ C++/CLI is a special version (extension) of C++ designed to run on the .NET Fram
     ```
 - No default arguments on managed types
 - No converting constructors
+- The `#using <library.dll>` preprocessor directive imports the Microsoft Intermediate Lange (MSIL) file `library.dll`. After import it is possbile to use __managed__ data and constructs defined in this library file (e.g. from `mscorelib.dll`).
 
 ## Object Lifetime
 
-### Destruction and Finalization:
+### Destruction and Finalization
 
 - __Finalization__: What happens when the GC cleans an object up
 - Destructor:
@@ -318,7 +326,50 @@ ref class Foo {
 
 ## Delegates and Events
 
-TODO
+Delegates are the .NET equivalent of function pointers and form the basis of the .NET event handling mechanism.
+
+### Delegates
+
+A delegate is a class whose purpose it is to invoke one or more methods that have a particular signature (indirect call to execute a function).
+
+- It is possible to attach more than one method to a delegate.
+- All the functions are called in order when the depegate is invoked.
+- Base classes for delegates in .NET: `System::Delegate` (for single methods) and `System::MulticastDelegate` for calling more than one method. In C++/CLI __all delegates are multicast delegates__.
+
+```C++
+// define a delegate type "NumericOperation" that implicitly inherits 
+// from System::MulticastDelegate
+// Can be bound to any function with the signature double(*)(double)
+delegate double NumericOperation(double);
+
+ref class Foo
+{
+public:
+    static double SquareMe(double d) {
+        return d*d;
+    }
+
+    double CubeMe(double v) {
+        return v*v*v;
+    }
+};
+
+...
+// e.g. code in main
+// ctor takes just the address of the function to call
+NumericOperation^ operation = gcnew NumericOperation(&Foo::Square);
+
+double sq_fp   = operation->Invoke(5.0); // should be 25.0
+double sq_fp_2 = operation(5.0); // implicit call to  Invoke
+
+Foo^ foo = gcnew Foo();
+// bind to non-static memeber functions
+NumericOperation^ op = gcnew NumericOperation(foo, &Foo::CubeMe);
+
+double cuby = op(3.0); // like calling foo->CubeMe(3.0);
+```
+
+- You cannot use a delegate to call unmanaged code or code that is defined in the global namespace.
 
 ## Managed vs. Unmanaged Code
 
