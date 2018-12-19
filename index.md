@@ -1,5 +1,7 @@
-# Avii83 Personal notes
+This pages page provides personal notes on various topics - mostly stuff i wrote down as a quick reference for myself.
 
-Just my personal notes that might contain various errors and typos -)
-
+## C++/CLI
 [C++/CLI short overview](cpp_cli/cpp_cli.md)
+
+## C++
+[C++ 17 Features](cpp/cpp17.md)

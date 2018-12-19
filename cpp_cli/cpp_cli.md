@@ -28,6 +28,7 @@ __Table of Contents__:
         - [Scalar Properties](#scalar-properties)
     - [Delegates and Events](#delegates-and-events)
         - [Delegates](#delegates)
+        - [Events](#events)
     - [Managed vs. Unmanaged Code](#managed-vs-unmanaged-code)
         - [Mixed classes](#mixed-classes)
         - [Pinning and Boxing](#pinning-and-boxing)
@@ -51,7 +52,7 @@ C++/CLI is a special version (extension) of C++ designed to run on the .NET Fram
   - Handles can be `nullptr`
 - There is no implict copy constructor in C++/CLI. You have to provide one yourself.
 - References: _Tracking references__ (since GC can relocate) using
-    ```C++
+    ```cpp
     MyFoo(const MyFoo% other); // in C++: MyFoo(const MyFoo& other);
     ```
 - No default arguments on managed types
@@ -64,7 +65,7 @@ C++/CLI is a special version (extension) of C++ designed to run on the .NET Fram
 
 - __Finalization__: What happens when the GC cleans an object up
 - Destructor:
-    ```C++
+    ```cpp
     Person^ p = gcnew Person("foo");
     ...
     delete p; // will call the destructor of p
@@ -73,7 +74,7 @@ C++/CLI is a special version (extension) of C++ designed to run on the .NET Fram
   - Will be called if the GC is cleaning up a object
   - You need a finalizer if you handle unmanaged code in your object
   - Example:
-    ```C++
+    ```cpp
     ref class Foo {
         public:
             ~Foo(); // destructor
@@ -91,7 +92,7 @@ C++/CLI is a special version (extension) of C++ designed to run on the .NET Fram
 - Automatic objects (stack allocated):
   - Under the hood there is no stack and objects have still _handles_. If an automatic object goes out of scope the destructor is called!
 - Copy constructor:
-    ```C++
+    ```cpp
     ...
     MyFoo(const MyFoo% other);
     ...
@@ -106,18 +107,18 @@ C++/CLI is a special version (extension) of C++ designed to run on the .NET Fram
 - Syntax: `ref class Foo : Base {...};`
 - Every object implicitly inherits from `System::Object` in .NET
 - Abstract classes work by using the `abstract` keyword:
-    ```C++
+    ```cpp
     ref class AbstractBase abstract {...};
     ```
 - You can _seal_ a class (like final in C++) so that it is not allowed as a base class:
-    ```C++
+    ```cpp
     ref class NoBase sealed {...};
     ```
 
 ## Interfaces
 
 - Like a base class with only pure virtual functions
-    ```C++
+    ```cpp
     interface class Inter {
         void foo();
     };
@@ -136,7 +137,7 @@ C++/CLI is a special version (extension) of C++ designed to run on the .NET Fram
 ## Values and References
 
 - C++/CLI types are just aliases to the __boxed .NET__ types:
-    ```C++
+    ```cpp
     int n   = 0;    // managed C++ type
     Int32 x = 0;    // use .NET native type -> means the same thing as n
     ```
@@ -152,7 +153,7 @@ C++/CLI is a special version (extension) of C++ designed to run on the .NET Fram
 
 ### Structs
 
-```C++
+```cpp
 value struct S {    // value is important to distinguish 
                     // between c++ structs and .NET structs
     int x;
@@ -176,7 +177,7 @@ s.x =10;
 - Are value types
 - Synatax:
 
-```C++
+```cpp
     // like class enums in C++
     public enum class Foo : int {
     // public/private is needed to distinguish to C++11 class enums
@@ -206,7 +207,7 @@ s.x =10;
 - In .NET: Typically throw objects derived from `System::Exception`
 - Example:
 
-```C++
+```cpp
 throw gcnew System::ArgumentException("Heeelp");
 ```
 
@@ -214,7 +215,7 @@ throw gcnew System::ArgumentException("Heeelp");
 
 - Use a `try catch` block like in C++:
 
-```C++
+```cpp
 try {...} catch(MyException^ e) { ... }
 ```
 
@@ -222,7 +223,7 @@ try {...} catch(MyException^ e) { ... }
 
 - Cleanup code after an exception is thrown
 
-```C++
+```cpp
 try {...}
 catch(MyException^ e) { ... }
 finally{...} // executed after the catch block
@@ -244,7 +245,7 @@ finally{...} // executed after the catch block
 - Managed arrays: Equivalent of C++ arrays but lives on the managed heap
 - Examples:
 
-```C++
+```cpp
 array<int>^ a1;     // 1D array of integers
 array<int, 2>^ a2;  // 2D array of integers
 array<Foo^> a3;     // 1D array of Foo handles
@@ -256,7 +257,7 @@ array<int>^ a_new = {1,2,3};        // short form
 
 - `for each` loop: Works with every Collection that implements `IEnumerable`.
 
-```C++
+```cpp
 for each (int a in a1)
 {
     ...
@@ -286,7 +287,7 @@ for each (int a in a1)
 - Properties are like virtual data members with syntactic suggar:
 - Can be (pure) `virtual` even with separation on get and set
 
-```C++
+```cpp
 Foo^ foo = gcnew Foo();
 foo->Name = "foo";      // calls the setter
 name = foo->Name;       // calls the getter
@@ -296,7 +297,7 @@ name = foo->Name;       // calls the getter
 
 - Access to a single value
 
-```C++
+```cpp
 ref class Foo {
     String^ name;
     public:
@@ -311,7 +312,7 @@ ref class Foo {
 
 - Indexed: Let properties get accessed like arrays
 
-```C++
+```cpp
 ref class Foo {
     array<int>^ a;
     public:
@@ -353,7 +354,6 @@ public:
         return v*v*v;
     }
 };
-
 ...
 // e.g. code in main
 // ctor takes just the address of the function to call
@@ -371,6 +371,127 @@ double cuby = op(3.0); // like calling foo->CubeMe(3.0);
 
 - You cannot use a delegate to call unmanaged code or code that is defined in the global namespace.
 
+### Events
+
+- In .NET events are implemented as a publish-and-subscribe mechanism.
+- Events are based on delegates: An event source declares delegate for each event that it wants to generate and event receivers define suitable methods that are passed to the source.
+- When an event fires it invokes all the subscribed functions.
+- Event properties:
+  - Can only be fired by the type that declares it
+  - Clients can only add and remove event handler functions using `+=` and `-=` to prevent resetting the invocation list.
+- The `event` keyword:
+  - Compiler will generate code to implement the underlying delegate meachanism.
+  - For event `AEvent` the following public/protected methods will be generated:
+    - `add_OnAEvent` that calls `Delegate::Combine` to add a receiver to the event's invocation list. Shortcut: `+=` on the event object itself.
+    - `remove_OnAEvent` that calls `Delegate::Remove` to remove a reveiver from the event's invocation list. Shortcut: `-=` on the event object itself.
+    - `raise_OnAEvent` that  is a protected method that calls `Delegate::Invoke` to call all methods on this event's invocation list.
+
+```cpp
+// Event source delegates
+// This is the signature event receivers must implement
+delegate void EventHandlerA(String^ str);
+delegate void EventHandlerB(String^ str);
+
+// Event Source class
+ref class Source {
+public:
+    // the events (one declaration for each event you want to raise)
+    event EventHandlerA^ OnAEvent;
+    event EventHandlerB^ OnBEvent;
+
+    // event raising functions
+    void RaiseA(String^ msg) {
+        OnAEvent(msg);
+    }
+
+     void RaiseB(String^ msg) {
+        OnBEvent(msg);
+    }
+};
+
+// Event receiver that listens for events
+ref class Listener {
+    Source^ source;
+
+public:
+    Listener(Source^ src) {
+            source = src;
+            // add our handlers
+            source->OnAEvent += gcnew EventHandlerA(this, &Listener::EventA);
+            source->OnBEvent += gcnew EventHandlerA(this, &Listener::EventB);
+    }
+
+    // handler methods
+    void EventA(String ^msg) {
+        Console::WriteLine("Event A, message is {0}", msg);
+    }
+
+    void EventB(String ^msg) {
+        Console::WriteLine("Event B, message is {0}", msg);
+    }
+
+    void RemoveHandler() {
+        // unsub only for EventA
+        source->OnAEvent -= gcnew EventHandlerA(this, &Listener::EventA);
+    }
+};
+
+// setup source and listener
+Source ^src   = gcnew Source();
+Listener ^rcv = gcnew Listener(src);
+
+// Fire events
+Console::WriteLine("Fire both events:");
+src->RaiseA("Foo");
+src->RaiseB("Bar");
+
+```  
+
+- Standard events and System::EventHandler
+  - All standard .NET handlers have the following signature:
+
+```cpp
+  // src:  Reference Object that raised the event
+  // args: Reference to object of base type EventArgs (extra infos about the event)
+  void MyPersonalHandler(Object^ src, EventArgs^ args); 
+```
+
+- The programmer could use the `System::EventHandler` delegate instead of defining new delegates for event handling.
+
+```cpp
+ref class Foo {
+    int counter;
+    int limit;
+
+public:
+    event EventHandler^ LimitReached; // use of System::EventHandler
+
+    Counter(int lim) : 
+        limit(lim), 
+        counter(0) {
+    }
+
+    void inc() {
+        ++count;
+        if (count == limit) {
+            LimitReached(this, gcnew EventArgs()); // raise event
+        }
+    }
+};
+
+ref class Bar {
+public:
+    static void CallMe(Object^ src, EventArgs^ args) {
+        Console::WriteLine("Limit reached");
+    }
+};
+
+...
+Counter count(3);
+count.LimitReached += gcnew EventHandler(&Bar::CallMe);
+
+```
+
 ## Managed vs. Unmanaged Code
 
 ### Mixed classes
@@ -383,7 +504,7 @@ double cuby = op(3.0); // like calling foo->CubeMe(3.0);
   - Can be passed to unmanaged code
   - Get handle by using `Alloc` and release handle by calling `Free`
     - Easier with helper template:
-    ```C++
+    ```cpp
     #include <gcroot.h>
     using namespace System::Runtime::InteropServices;
     class CppClass {
@@ -418,7 +539,7 @@ double cuby = op(3.0); // like calling foo->CubeMe(3.0);
 
 - __Pinning pointer__: Pointer to a managed object but with a fixed value (GC cannot move object) around. Pinning a member of an object will pin the whole object.
 
-```C++
+```cpp
 void cpp_fun(int* p); // c++ function taking a pointer
 
 array<int>^ arr = gcnew array<int>(5);
@@ -436,7 +557,7 @@ pin = nullptr; // zero out to unpin
         - The address of the managed object is returned
   - Be aware that the managed object contains a __copy_ of the original object and changes will not be written back to the original value.
   - __Unboxing__ is done with a `safe_cast<T>`:
-    ```C++
+    ```cpp
     int i = 12;         // value type
     Object^ obj = i;    // automatically boxed (copied on the heap)
     int j = safe_cast<int>(obj); // unboxed (copied from the heap)
@@ -451,7 +572,7 @@ pin = nullptr; // zero out to unpin
   - Let you call functions in dlls
   - Underlying marshalling principle in C++/CLI (e.g. from `std::string` to `String^`)
 
-```C++
+```cpp
 // call a MessageBox function from the WIN API
 // Function is found in User32.dll
 
